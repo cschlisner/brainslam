@@ -1,0 +1,388 @@
+%namespace Compiler
+%class-name Parser
+%filenames ccparser
+%parsefun-source ccparse.cc
+
+%expect 4          // if-else, new_array (2), '[' 
+
+%polymorphic    INT:    int; 
+                STRING: std::string; 
+                CHAR:   char;
+                PAIR1:  std::pair<int, int>;
+                PAIR2:  std::pair<std::string, std::vector<int>>;
+                LIST:   std::vector<int>;
+
+%token <STRING> VAR
+%token <STRING> STR
+%token <STRING> FUNNAME
+%token <INT>    CST
+%token <CHAR>   CHR
+%type  <INT>    expr
+%type  <INT>    lvalue
+%type  <INT>    rvalue
+%type  <PAIR1>  element
+%type  <PAIR2>  function
+%type  <INT>    index
+%type  <INT>    new_array
+%type  <LIST>   opt_list
+%type  <LIST>   list
+
+%token PRINTC PRINTD PRINTS SCAN IF ELSE FOR ARRAY
+%left AND OR 
+%left '<' '>' GE LE EQ NE
+%right '=' ADD SUB MUL DIV MOD      // +=, -=, *=, /=, %=
+%left '-' '+'
+%left '*' '/' '%'
+%right '!'
+
+%%
+
+stmt_list:
+    // empty
+|
+    stmt_list stmt
+;
+
+stmt:
+    io_stmt
+    {
+        collectGarbage();
+    }
+|
+    expr_stmt
+    {
+        collectGarbage();
+    }
+|
+    if_stmt
+    {
+        collectGarbage();
+    }
+|
+    for_stmt
+    {
+        collectGarbage();
+    }
+|
+    '{' stmt_list '}'
+;
+
+expr_stmt:
+    expr ';'
+;
+
+io_stmt:
+    PRINTC expr ';'
+    {
+        printc($2); 
+    }
+|
+    PRINTD expr ';'
+    {
+        printd($2); 
+    }
+|
+    PRINTS expr ';'
+    {
+        prints($2);
+    }
+|
+    SCAN lvalue ';'
+    {
+        scan($2);  
+    }  
+;
+
+if_stmt:
+    if stmt
+    {
+        stopIf();
+        popStack();
+    }
+|
+    if stmt else stmt
+    {
+        stopIfElse();
+        popStack();
+    }
+;
+
+
+for_stmt:
+    for stmt
+    {
+        stopFor();
+        popStack();
+    }
+;
+
+if:
+    IF expr 
+    {
+        startIf($2);
+    }
+;
+
+
+else:
+    ELSE
+    {
+        startElse();
+    }
+;
+
+for:
+    FOR lvalue '=' expr ':' expr
+    {
+        startFor($2, $4, -1, $6);
+    }
+|
+    FOR lvalue '=' expr ':' expr ':' expr
+    {
+        startFor($2, $4, $6, $8);
+    }
+;
+
+opt_list:
+    list
+|
+    // empty
+    {
+        $$ = std::vector<int>();
+    }
+;
+
+list:
+    expr
+    {
+        ($$).push_back($1);
+    }
+|
+    list ',' expr
+    {
+        ($$).push_back($3);
+    }
+;
+
+rvalue:
+    CST
+    {
+        $$ = assign($1);       
+    }
+|
+    CHR
+    {
+        $$ = assign($1);
+    }
+|
+    STR
+    {
+        $$ = allocString($1);  
+    }
+|
+    '[' opt_list ']'
+    {
+        $$ = allocArray($2);
+    }
+|
+    function
+    {
+        $$ = call(($1).first, ($1).second);
+    }
+|
+    element
+    {
+        $$ = arrayValue(($1).first, ($1).second);
+    }
+|
+    new_array
+    {
+        $$ = $1;
+    }
+;
+
+lvalue:
+    VAR
+    {
+        $$ = allocate($1);
+    }
+;
+
+element:
+    lvalue index
+    {
+        $$ = std::pair<int, int>($1, $2);
+    }
+;
+
+index:
+    '[' expr ']'
+    {
+        $$ = $2;
+    }
+;
+
+new_array:
+    ARRAY CST
+    {
+        $$ = allocArray($2);
+    }
+|
+    ARRAY CST CST
+    {
+        $$ = allocArray($2, $3);
+    }
+|
+    ARRAY CST CHR
+    {
+        $$ = allocArray($2, $3);
+    }
+;
+
+function:
+    FUNNAME '(' opt_list ')'
+    {
+        $$ = std::pair<std::string, std::vector<int>>($1, $3);
+    }
+;
+
+expr:
+    lvalue
+|
+    rvalue
+|
+    lvalue '=' expr
+    {
+        $$ = assign($1, $3);
+    }
+|
+    lvalue ADD expr
+    {
+        $$ = addTo($1, $3); 
+    }
+|
+    lvalue SUB expr
+    {
+        $$ = subtractFrom($1, $3);
+    }
+|
+    lvalue MUL expr
+    {
+        $$ = multiplyBy($1, $3);  
+    }
+|
+    lvalue DIV expr
+    {
+        $$ = divideBy($1, $3);    
+    }    
+|
+    lvalue MOD expr
+    {
+        $$ = moduloBy($1, $3);   
+    }    
+|
+    element '=' expr
+    {
+        $$ = assignToElement(($1).first, ($1).second, $3);
+    }
+|
+    element ADD expr
+    {
+        $$ = addToElement(($1).first, ($1).second, $3);
+    }   
+|
+    element SUB expr
+    {
+        $$ = subtractFromElement(($1).first, ($1).second, $3);
+    }
+|
+    element MUL expr
+    {
+        $$ = multiplyElement(($1).first, ($1).second, $3);
+    }
+|
+    element DIV expr
+    {
+        $$ = divideElement(($1).first, ($1).second, $3);
+    }
+|
+    element MOD expr
+    {
+        $$ = moduloElement(($1).first, ($1).second, $3);
+    }
+|
+    expr '+' expr
+    {
+        $$ = add($1, $3);        
+    }
+|
+    expr '-' expr
+    {
+        $$ = subtract($1, $3);   
+    }
+|
+    expr '*' expr
+    {
+        $$ = multiply($1, $3);   
+    }
+|
+    expr '/' expr
+    {
+        $$ = divide($1, $3);     
+    }
+|
+    expr '%' expr
+    {
+        $$ = modulo($1, $3);     
+    }
+|
+    expr '<' expr
+    {
+        $$ = lt($1, $3);
+    }
+|
+    expr '>' expr
+    {
+        $$ = gt($1, $3);
+    }
+|
+    expr LE expr
+    {
+        $$ = le($1, $3);
+    }
+|
+    expr GE expr
+    {
+        $$ = ge($1, $3);
+    }
+|
+    expr EQ expr
+    {
+        $$ = eq($1, $3);
+    }
+|
+    expr NE expr
+    {
+        $$ = ne($1, $3);
+    }
+|
+    expr AND expr
+    {
+        $$ = logicAnd($1, $3);
+    }
+|
+    expr OR expr
+    {
+        $$ = logicOr($1, $3);
+    }
+|
+    '!' expr
+    {
+        $$ = logicNot($2);
+    }
+|
+    '(' expr ')'
+    {
+        $$ = $2;
+    }
+;

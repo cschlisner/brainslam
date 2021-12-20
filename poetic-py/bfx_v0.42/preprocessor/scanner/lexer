@@ -1,0 +1,58 @@
+%namespace = "Preprocessor"
+%filenames = "ppscanner"
+%class-name = "Scanner"
+%lex-source = "pplex.cc"
+
+ident [[:alpha:]][[:alnum:]]*
+
+%x eolcomment
+%x ccomment
+
+%x functionBody
+
+%%
+
+[[:blank:]\n]               // ignore
+
+"function"                  return ParserBase::FUNCTION;
+{ident}                     return ParserBase::VAR;
+{ident}/'('                 return ParserBase::FUNNAME;
+'{'                         {
+                                curlyCount = 0;
+                                begin(StartCondition__::functionBody);
+                                return '{';
+                            }
+.|\n                        return matched()[0];
+
+<functionBody>'{'           {
+                                ++curlyCount;
+                                return ParserBase::CHR;
+                            }
+<functionBody>'}'           {
+                                if (curlyCount-- == 0)
+                                {
+                                    begin(StartCondition__::INITIAL);
+                                    return '}';
+                                }
+                                else    
+                                    return ParserBase::CHR;
+                            }
+<functionBody>.|\n          return ParserBase::CHR;
+
+// Comments
+
+"//"                        {
+                                more();
+                                begin(StartCondition__::eolcomment);
+                            }
+
+<eolcomment>\n              begin(StartCondition__::INITIAL);
+<eolcomment>.               more();
+                
+"/*"                        {
+                                more();
+                                begin(StartCondition__::ccomment);
+                            }
+<ccomment>"*/"              begin(StartCondition__::INITIAL);
+<ccomment><<EOF>>           return 0;
+<ccomment>.|\n              more();

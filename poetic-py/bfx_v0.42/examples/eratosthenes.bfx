@@ -1,0 +1,41 @@
+/* eratosthenes.bfx */
+
+function main()
+{
+    // Initialize array
+    primes = sequence();
+    
+    // Sieve the array
+    primes = sieve(primes);
+    
+    // Display results
+    printPrimes(primes);
+}
+
+function ret = sequence()
+{
+    ret = array 200;
+    for i = 0:199
+        ret[i] = i + 1;   
+}
+
+function p = sieve(p)
+{
+    for q = 2:15
+        for w = 2 * q : q : 200
+            p[w - 1] = 0;    
+}
+
+function printPrimes(p)
+{
+    for i = 0:199
+    {
+        if (p[i])
+        {
+            printd p[i];
+            print ' ';
+        }
+    }
+    
+    print '\n';
+}

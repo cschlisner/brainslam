@@ -1,0 +1,58 @@
+/* flow.bfx */
+
+function main()
+{
+    // Get x and y from input
+    x = get("x");
+    y = get("y");
+    
+    // Compare the two
+    compare(x, y);
+    
+    // See if one or both were 0
+    zero(x, y);
+    
+    // Print the alphabet
+    printSequence('a', 'z');
+}
+
+function x = get(name)
+{
+    prints "enter ";
+    prints name;
+    prints ": ";
+    scan x;
+}
+
+function compare(x, y)
+{
+    more = "x is greater than y\n";
+    less = "x is less than y\n";
+    same = "x is equal to y\n";
+
+    if x < y
+        prints less;
+    else if x == y
+        prints same;
+    else if x > y
+        prints more;
+}
+   
+function zero(x, y)
+{
+    if x == 0 && y == 0
+        prints "Both x and y are zero.\n";
+    else if x != 0 && y == 0
+        prints "x was not zero, but y was.\n";
+    else if x == 0 && y != 0
+        prints "y was not zero, but x was.\n";
+    else
+        prints "neither x nor y was zero.\n";
+}
+
+function printSequence(start, stop)
+{
+    for i = start:stop
+        print i;
+    print '\n';
+}

@@ -1,0 +1,13 @@
+/* hellofunction.bfx */
+
+function main()
+{
+    hello("World");
+}
+
+function hello(who)
+{
+    prints "Hello ";
+    prints who;
+    prints "!\n";
+}

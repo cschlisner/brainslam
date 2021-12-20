@@ -1,0 +1,11 @@
+/* arithmetic.bfx */
+
+function main()
+{
+    scan x; // read an integer value from stdin into the variable x
+    scan y; // same for y
+
+    z = 2 * (x + y) * (x % y); // compute the value and assign to z
+    printd z;   // print the decimal value of z
+    print '\n'; // print a newline
+}

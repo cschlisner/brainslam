@@ -1,0 +1,93 @@
+%namespace = "Compiler"
+%filenames = "ccscanner"
+%class-name = "Scanner"
+%lex-source = "cclex.cc"
+
+ident [[:alpha:]][[:alnum:]]*
+escap ["\\n""\\t"]
+
+%x string
+%x eolcomment
+%x ccomment
+
+%%
+
+[[:blank:]\n]               // ignore
+
+"print"                     |
+"printc"                    return ParserBase::PRINTC;
+"printd"                    return ParserBase::PRINTD;
+"prints"                    return ParserBase::PRINTS;
+"scan"                      return ParserBase::SCAN;
+"array"                     return ParserBase::ARRAY;
+"if"                        return ParserBase::IF;
+"else"                      return ParserBase::ELSE;
+"for"                       return ParserBase::FOR;
+"<="                        return ParserBase::LE;
+">="                        return ParserBase::GE;
+"=="                        return ParserBase::EQ;
+"!="                        return ParserBase::NE;
+"+="                        return ParserBase::ADD;
+"-="                        return ParserBase::SUB;
+"/="                        return ParserBase::DIV;
+"*="                        return ParserBase::MUL;
+"%="                        return ParserBase::MOD;
+"&&"                        return ParserBase::AND;
+"||"                        return ParserBase::OR;
+
+[[:digit:]]*                return ParserBase::CST;
+{ident}                     return ParserBase::VAR;
+{ident}/'('                 return ParserBase::FUNNAME;
+"'"."'"                     {
+                                setMatched(matched().substr(1,1));
+                                return ParserBase::CHR;
+                            }
+"'\\"."'"                   {
+                                setMatched(escape(matched()[2]));
+                                return ParserBase::CHR;
+                            }
+
+\"                          {
+                                more();
+                                begin(StartCondition__::string);
+                            }
+
+"//"                        {
+                                more();
+                                begin(StartCondition__::eolcomment);
+                            }
+
+"/*"                        {
+                                more();
+                                begin(StartCondition__::ccomment);
+                            }
+
+.|\n                        return matched()[0];
+<<EOF>>                     return 0;
+                            
+<string>{
+\"                          {
+                                begin(StartCondition__::INITIAL);
+                                setMatched(matched().substr(1, matched().length() - 2));      // exclude quotations
+                                return ParserBase::STR;
+                            }
+
+"\\".                       {
+                                more();
+                                std::string esc = escape(matched()[matched().length() - 1]);        // escaped character
+                                setMatched(matched().substr(0, matched().length() - 2) + esc);      // replace escape sequence
+                            }
+                            
+.                           more();
+}
+
+<eolcomment>{
+\n                          begin(StartCondition__::INITIAL);
+.                           more();
+}
+                
+<ccomment>{
+"*/"                        begin(StartCondition__::INITIAL);
+<<EOF>>                     return 0;
+.|\n                        more();
+}

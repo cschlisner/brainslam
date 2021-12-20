@@ -1,0 +1,81 @@
+%namespace Preprocessor
+%class-name Parser
+%filenames ppparser
+%parsefun-source ppparse.cc
+
+%polymorphic STRING:    std::string;
+             CHAR:      char;
+             LIST:      std::vector<std::string>
+             
+%token <STRING> FUNNAME
+%token <STRING> VAR
+%token <CHAR>   CHR
+%token FUNCTION
+
+%type  <STRING> opt_body
+%type  <STRING> body
+%type  <LIST>   opt_list
+%type  <LIST>   list
+
+%%
+
+program:
+    // empty
+|
+    program function
+;
+
+function:
+    FUNCTION FUNNAME '(' opt_list ')' '{' opt_body '}'
+    {
+        addFunction("__void__", $2, $4, $7);
+    }
+|
+    FUNCTION VAR '=' FUNNAME '(' opt_list ')' '{' opt_body '}'
+    {
+        addFunction($2, $4, $6, $9);
+    }
+;
+
+opt_list:
+    list
+|
+    // empty
+    {
+        $$ = std::vector<std::string>();
+    }
+;
+
+list:
+    VAR
+    {
+        ($$).push_back($1);
+    }
+|
+    list ',' VAR
+    {
+        ($$).push_back($3);
+    }
+;
+
+opt_body:
+    body
+|
+    // empty
+    {
+        $$ = std::string();
+    }
+;
+
+body:
+    CHR
+    {
+        $$ += $1;
+    }
+|
+    body CHR
+    {
+        $$ += $2;
+    }
+;
+    

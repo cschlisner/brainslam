@@ -1,0 +1,29 @@
+BrainFix v0.42
+
+Tested successfully with g++-4.6 and g++-4.7. Not compatible with
+older versions of GCC.
+
+To install, make the install.sh script executable:
+    $ chmod u+x install.sh
+And run:
+    $ ./install.sh
+    
+This should generate 2 executables:
+- bfx
+- bf2c
+
+The first is the BrainFix compiler, which can be used to translate
+a BrainFix source file into the BrainFuck Language.
+
+The resulting BrainFuck-source can then be translated using the second 
+executable: bf2c. This will generate a C-source file which can be compiled 
+with a C-compiler of your choice.
+
+See also the manual (manual.pdf) for the language and compilation details.
+Happy BrainFucking/Fixing!
+
+jorenheit@gmail.com
+
+New since version 0.41:
+* More extensive manual, including implementation details.
+* Added logical NOT (!) operator.

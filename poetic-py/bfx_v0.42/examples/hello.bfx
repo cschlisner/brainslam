@@ -1,0 +1,6 @@
+/* hello.bfx */
+
+function main()
+{
+    prints "Hello World!\n";
+}
